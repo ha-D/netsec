@@ -3,23 +3,23 @@ import types
 
 class Logger:    
     def __init__(self):
-        self.tag_colors = {}
-        self.message_colors = {}
+        self.tagColors = {}
+        self.messageColors = {}
         pass
 
     def _log(self, tag, message, omit_tag):
-        tag_color = self.tag_colors[tag]
-        message_color = self.message_colors[tag]
+        tagColor = self.tagColors[tag]
+        messageColor = self.messageColors[tag]
         if omit_tag:
-            print(' %s    %s' % (color(' ' * len(tag), tag_color), color(message, message_color)))
+            print(' %s    %s' % (color(' ' * len(tag), tagColor), color(message, messageColor)))
         else:    
-            print('%s   %s' % (color('[' + tag + ']', tag_color, attrs=['bold']), color(message, message_color)))
+            print('%s   %s' % (color('[' + tag + ']', tagColor, attrs=['bold']), color(message, messageColor)))
 
-    def add_level(self, tag, tag_color="white", message_color=None):
-        if (message_color == None):
-            message_color = tag_color
-        self.tag_colors[tag] = tag_color
-        self.message_colors[tag] = message_color
+    def addLevel(self, tag, tagColor="white", messageColor=None):
+        if (messageColor == None):
+            messageColor = tagColor
+        self.tagColors[tag] = tagColor
+        self.messageColors[tag] = messageColor
 
         func = lambda self, message, omit_tag=False: self._log(tag, message, omit_tag)
         setattr(self, tag, types.MethodType(func, self, Logger))
@@ -27,8 +27,8 @@ class Logger:
 
 logger = Logger()
 
-logger.add_level('info', 'grey', 'white')
-logger.add_level('debug', 'yellow', 'yellow')
-logger.add_level('error', 'red', 'red')
+logger.addLevel('info', 'grey', 'white')
+logger.addLevel('debug', 'yellow', 'yellow')
+logger.addLevel('error', 'red', 'red')
 
 

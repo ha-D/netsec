@@ -3,23 +3,22 @@ from logger import logger
 import json
 
 class ConfigReader:
-    def __init__(self, config_file_name):
+    def __init__(self, configFileName):
         # Open Config file
         try:
-            config_file = open(config_file_name, 'r')
+            configFile = open(configFileName, 'r')
         except IOError:
-            logger.error("Can't find this file of yours: %s" % config_file_name)
+            logger.error("Can't find this file of yours: %s" % configFileName)
             exit(1)
 
         # Parse JSON file
         try:
-            config = json.loads(config_file.read())
+            config = json.loads(configFile.read())
         except ValueError as e:
             logger.error("There's a problem with your config file, fix it!")
             logger.error(e.message, omit_tag = True)
             exit(1)
-            
-        config_file.close()
+        configFile.close()
 
         self.config = config
 
@@ -35,7 +34,7 @@ class ConfigReader:
                 val = None
         return val
 
-    def get_int(self, name, required = False):
+    def getInt(self, name, required = False):
         val = self._get(name, required)
         try:
             return int(val)
@@ -43,10 +42,10 @@ class ConfigReader:
             logger.error("Expected to find an int for '%s' in config file, but there ain't no int, is there?!")
             exit(1)
 
-    def get_string(self, name, required = False):
+    def getString(self, name, required = False):
         return str(self._get(name, required))
 
-    def get_boolean(self, name, required = False):
+    def getBoolean(self, name, required = False):
         return self._get(name, required) == True
 
     def get(self, name, required = False):
