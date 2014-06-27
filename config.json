@@ -1,4 +1,3 @@
 {
-	"ca-client-port": 4000,
-	"ca-authority-port": 4001
+	"verbose": true
 }

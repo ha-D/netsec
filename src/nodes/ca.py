@@ -11,13 +11,13 @@ import os.path
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CA Server")
-    parser.add_argument('config', metavar='Config', nargs='?',
+    parser.add_argument('-c', '--config', metavar='config', nargs='*',
                 help='path to the configuration file', default=None)
     parser.add_argument('args', nargs = argparse.REMAINDER)
 
     return parser.parse_args()
 
-class CertifyProtocol(SecureProtocol):
+class CAProtocol(SecureProtocol):
 
     def connectionMade(self):
         peer = self.transport.getPeer()
@@ -34,51 +34,35 @@ class CertifyProtocol(SecureProtocol):
 
 
 
-class CertifyFactory(ServerFactory):
-    protocol = CertifyProtocol
+class CAFactory(ServerFactory):
+    protocol = CAProtocol
 
-
-class ValidationProtocol(SecureProtocol):
-
-    def messageReceived(self, message):
-        pass
-
-class ValidationFactory(ServerFactory):
-    protocol = ValidationProtocol
-    
 class CAServer(NetworkNode):
     
     def run(self):
         options = parse_args()
 
         # Read configurations from file
-        configFile = options.config
-        if not configFile and os.path.isfile('config.json'):
-                configFile = 'config.json'
-        if not configFile:
-            logger.warning("Can't find the configuration file, please specify path")
+        configFiles = options.config
+        if not configFiles and os.path.isfile('config.json'):
+            configFiles = ['config.json']
+        if not configFiles:
+            logger.warning("Couldn't find any configuration files")
         else:
-            logger.info("Reading configurations from '%s'" % configFile)
-            configReader = ConfigReader(configFile)
-            app.config.populate(configReader.config)
+            for configFile in configFiles:
+                logger.info("Reading configurations from '%s'" % configFile)
+                configReader = ConfigReader(configFile)
+                app.config.populate(configReader.config)
 
         # Read configurations from args
         for key in options.args:
             print(key)
 
-        # Add service name to configurations
-        app.config['service-name'] = 'ca'
-
-
         # Setup and run the reactor
         from twisted.internet import reactor
 
-        factory = CertifyFactory()
-        port = reactor.listenTCP(app.config.getInt('ca-client-port'), factory)
-        logger.verbose("Awaiting client connections on %s" % port.getHost())
-
-        factory = ValidationFactory()
-        port = reactor.listenTCP(app.config.getInt('ca-authority-port'), factory)
-        logger.verbose("Awaiting authority connections on %s" % port.getHost())
+        factory = CAFactory()
+        port = reactor.listenTCP(app.config.getInt('port'), factory)
+        logger.verbose("Awaiting connections on %s" % port.getHost())
 
         reactor.run()
