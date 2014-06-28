@@ -1,4 +1,6 @@
 {
 	"public-key-directory": "data/public-keys",
+	"ca-host": "127.0.0.1",
+	"ca-port": 4000,
 	"verbose": true
 }

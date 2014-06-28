@@ -2,6 +2,8 @@ from twisted.protocols.basic import NetstringReceiver
 from hashlib import sha1
 from logger  import logger
 from base    import application as app
+
+from base64  import b64encode, b64decode
 import json
 
 class SecureProtocol(NetstringReceiver):
@@ -15,7 +17,7 @@ class SecureProtocol(NetstringReceiver):
         raise NotImplementedError
 
     def sendMessage(self, message):
-        self.write(message.finalizeForSending().dump())
+        self.sendString(message.finalizeForSending().dump())
 
     def stringReceived(self, data):
         message = SecureMessage()
@@ -42,9 +44,7 @@ class SecureProtocol(NetstringReceiver):
 
 class SecureMessage:
 
-    def __init__(self, factory):
-        self.factory = factory
-
+    def __init__(self):
         self.message = {}
         self.signed = False
         self.encrypted = False
@@ -110,26 +110,26 @@ class SecureMessage:
         return self
 
     def sign(self):
-        if signed:
+        if self.signed:
             logger.warning("You tell me to sign an already signed message, I won't!")
             return self
-        if encrypted:
+        if self.encrypted:
             raise SecureMessageError("I can't sign an encrypted message, thats not how I work!")
 
         items = json.dumps(sorted(self.message.items()))
         key = app.keyManager.getMyKey()
 
-        signature = RSAPublicEncrypt(digest(items), key)
+        signature = b64encode(RSAPrivateEncrypt(digest(items), key))
         self.message['signature'] = signature
 
         self.signed = True
         return self
 
     def unsign(self):
-        if not signed:
+        if not self.signed:
             logger.warning("You tell me to unsign a message which is not signed, what do you want me to do?")
             return self
-        if encrypted:
+        if self.encrypted:
             raise SecureMessageError("I can't unsign an encrypted message, thats not how I work!")
 
         self.message.pop('signature')
@@ -137,24 +137,24 @@ class SecureMessage:
         return self
 
     def validateSignature(self):
-        if not signed:
+        if not self.signed:
             logger.error("How should I validate a signature when there is no signature?!")
             return False
-        if encrypted:
+        if self.encrypted:
             raise SecureMessageError("I can't validate the signature when everything is encrypted")
 
         if not self.sender:
             raise SecureMessageError("Can't validate signature. No sender specified on message")
 
         try:
-            key = app.keyManager.findKey()
+            key = app.keyManager.findKey(self.sender)
         except KeyError:
             logger.warning("Can't validate signature from '%s', no public key" % self.sender)
             return False
 
         signature = self.message['signature']
         
-        dig1 = RSAPrivateEncrypt(signature, key)
+        dig1 = RSAPublicEncrypt(b64decode(signature), key)
 
         tmpMessage = self.message.copy()
         tmpMessage.pop('signature')
@@ -163,7 +163,7 @@ class SecureMessage:
         return dig1 == dig2
 
     def finalizeForSending(self):
-        serviceName = config.get("service-name")
+        serviceName = app.config.get("node-name")
         self.sender = serviceName
         return self
 
@@ -176,36 +176,36 @@ class SecureMessage:
 
         if self.sender:
             data['sender'] = self.sender
-
+        
         return json.dumps(data)
 
     __unicode__ = dump
     __str__ = dump
 
     def __getitem__(self, key):
-        if encrypted:
+        if self.encrypted:
             raise SecureMessageError("Can't read from an encrypted message")
-        return message.__getitem__(key)
+        return self.message.__getitem__(key)
 
     def __setitem__(self, key, item):
-        if encrypted:
+        if self.encrypted:
             raise SecureMessageError("Can't write to an encrypted message")
-        return message.__setitem__(key, item)
+        return self.message.__setitem__(key, item)
 
     def __delitem__(self, key):
-        if encrypted:
+        if self.encrypted:
             raise SecureMessageError("Can't delete from an encrypted message")
-        return message.__delitem__(key)
+        return self.message.__delitem__(key)
 
     def __contains__(self, key):
-        if encrypted:
+        if self.encrypted:
             raise SecureMessageError("Can't read from an encrypted message")
-        return message.__contains__(key)
+        return self.message.__contains__(key)
 
     def __iter__(self):
-        if encrypted:
+        if self.encrypted:
             raise SecureMessageError("Can't iterate on an encrypted message")
-        return message.__iter__()
+        return self.message.__iter__()
 
 class PopulationError(Exception):
     pass

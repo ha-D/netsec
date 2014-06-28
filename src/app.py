@@ -1,23 +1,30 @@
 from rsa    import KeyManager, KeyParser
 from base   import ConfigReader
 from base   import application as app
-from nodes  import CANode
+from nodes  import CANode, ClientNode
 from logger import logger
 
 import sys, os, inspect, argparse
 
 nodeList = {
-    'client': None,
+    'client': ClientNode,
     'ca': CANode,
     'authority': None,
     'collector': None
 }
 
+acceptedOptions = [
+    "private-key-file",
+    "public-key-directory"
+]
+
 def parseArgs():
     parser = argparse.ArgumentParser(description="CA Server")
     parser.add_argument('-c', '--config', metavar='config', nargs='*',
                 help='path to the configuration file', default=None)
-    parser.add_argument('args', nargs = argparse.REMAINDER)
+    
+    for opt in acceptedOptions:
+        parser.add_argument('--'+opt, nargs='?', default=None)
 
     return parser.parse_args()
 
@@ -34,10 +41,12 @@ def initConfig(options):
             configReader = ConfigReader(configFile)
             app.config.populate(configReader.config)
 
-    # Read configurations from args
-    # TODO
-    for key in options.args:
-        print(key)
+    # Read extra config options
+    otherOptions = dict(options._get_kwargs())
+    for opt in acceptedOptions:
+        uOpt = opt.replace('-', '_')
+        if otherOptions[uOpt]:
+            app.config[opt] = otherOptions[uOpt]
 
 def initKeys():
     # Initialize KeyManager
@@ -57,6 +66,7 @@ def initKeys():
     keyPath = app.config.get("private-key-file")
     key = keyParser.readPrivateKey(keyPath)
     keyManager.setMyKey(key)
+    logger.debug("Private Key read from %s" % keyPath)
 
 if __name__ == "__main__":
     

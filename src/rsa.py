@@ -1,4 +1,5 @@
 from Crypto.PublicKey   import RSA
+from logger     import logger
 
 class RSAError(Exception):
     pass
@@ -26,6 +27,7 @@ class KeyManager:
         return self.publicKeys[who]
 
 class KeyParser:
+
     def readPublicKey(self, fileName):
         try:
             f = open(fileName, 'r')
@@ -55,9 +57,10 @@ class KeyParser:
         return PrivateKey(key, pem)        
 
 class PublicKey:
+
     def __init__(self, rsaKey, pem):
         self.rsaKey = rsaKey
-        self.pem = pem
+        self._pem = pem
 
     def publicEncrypt(self, val):
         return self.rsaKey.encrypt(val, str)[0]
@@ -66,12 +69,13 @@ class PublicKey:
         raise RSAError("Can't private encrypt with a public key")
 
     def pem(self):
-        return self.pem
+        return self._pem
 
 class PrivateKey:
+
     def __init__(self, rsaKey, pem):
         self.rsaKey = rsaKey
-        self.pem = pem
+        self._pem = pem
 
     def publicEncrypt(self, val):
         return self.rsaKey.encrypt(val, str)[0]
@@ -80,4 +84,8 @@ class PrivateKey:
         return self.rsaKey.decrypt(val)
 
     def pem(self):
-        return self.pem
+        return self._pem
+
+    def publickey(self):
+        key = self.rsaKey.publickey()
+        return PublicKey(key, key.exportKey())

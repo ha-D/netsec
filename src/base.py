@@ -4,10 +4,27 @@ from logger import logger
 import json, traceback
 
 class Application:
+    
     def __init__(self):
         from rsa    import KeyManager
         self.config = Configuration()
         self.keyManager = KeyManager()
+
+        
+class NetworkNode:
+
+    def run(self):
+        """
+        Override this
+        """
+        raise NotImplementedError
+
+    def start(self):
+        try:
+            self.run()
+        except Exception:
+            logger.error(traceback.format_exc(()))
+            exit(1)
 
 class ConfigReader:
 
@@ -34,7 +51,6 @@ class NoValue:
     pass
 
 class Configuration:
-
 
     def __init__(self):
         self.config = {}
