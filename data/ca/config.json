@@ -1,4 +1,5 @@
 {
 	"service-name": "ca",
+	"private-key-file": "data/ca/ca.key",
 	"port": 4000
 }

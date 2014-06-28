@@ -1,12 +1,62 @@
-import sys, os, inspect
-import nodes.ca
+from rsa    import KeyManager, KeyParser
+from base   import ConfigReader
+from base   import application as app
+from nodes  import CANode
+from logger import logger
+
+import sys, os, inspect, argparse
 
 nodeList = {
     'client': None,
-    'ca': nodes.ca.CAServer,
+    'ca': CANode,
     'authority': None,
     'collector': None
 }
+
+def parseArgs():
+    parser = argparse.ArgumentParser(description="CA Server")
+    parser.add_argument('-c', '--config', metavar='config', nargs='*',
+                help='path to the configuration file', default=None)
+    parser.add_argument('args', nargs = argparse.REMAINDER)
+
+    return parser.parse_args()
+
+def initConfig(options):
+    # Read configurations from file
+    configFiles = options.config
+    if not configFiles and os.path.isfile('config.json'):
+        configFiles = ['config.json']
+    if not configFiles:
+        logger.warning("Couldn't find any configuration files")
+    else:
+        for configFile in configFiles:
+            logger.info("Reading configurations from '%s'" % configFile)
+            configReader = ConfigReader(configFile)
+            app.config.populate(configReader.config)
+
+    # Read configurations from args
+    # TODO
+    for key in options.args:
+        print(key)
+
+def initKeys():
+    # Initialize KeyManager
+    keyManager = app.keyManager
+    keyParser  = KeyParser()
+
+    # Read public keys
+    keyDir = app.config.get("public-key-directory")
+    for f in os.listdir(keyDir):
+        path = os.path.join(keyDir, f)
+        name = f.replace('.pub', '')
+        key = keyParser.readPublicKey(path)
+        keyManager.addPublicKey(name, key)
+        logger.debug("Public key for '%s' read from %s" % (name, path))
+
+    # Read private key
+    keyPath = app.config.get("private-key-file")
+    key = keyParser.readPrivateKey(keyPath)
+    keyManager.setMyKey(key)
 
 if __name__ == "__main__":
     
@@ -36,6 +86,11 @@ if __name__ == "__main__":
 
     # Remove node name from argv to prevent it being parsed later
     sys.argv.pop(1)
+
+
+    options = parseArgs()
+    initConfig(options)
+    initKeys()
 
     node = nodeList[nodeName]()
     node.start()

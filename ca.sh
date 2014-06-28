@@ -1,0 +1,1 @@
+python src/app.py ca --config config.json data/ca/config.json

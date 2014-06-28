@@ -3,41 +3,11 @@ from logger import logger
 
 import json, traceback
 
-class NetworkNode:
-
-    def run(self):
-        """
-        Override this
-        """
-        raise NotImplementedError
-
-    def start(self):
-        try:
-            self.run()
-        except Exception:
-            logger.error(traceback.format_exc(()))
-            exit(1)
-
 class Application:
     def __init__(self):
+        from rsa    import KeyManager
         self.config = Configuration()
         self.keyManager = KeyManager()
-
-class KeyManager:
-    
-    def __init__(self):
-        pass
-
-    def getMyPrivateKey(self):
-        return "my-privatekey"
-
-    def getMyPublicKey(self):
-        return 'my-publickey'
-        
-    def findKey(self, who):
-        d = Deferred()
-        return d
-
 
 class ConfigReader:
 
