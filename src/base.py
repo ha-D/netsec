@@ -1,3 +1,4 @@
+from twisted.internet.defer  import Deferred
 from logger import logger
 
 import json, traceback
@@ -34,7 +35,8 @@ class KeyManager:
         return 'my-publickey'
         
     def findKey(self, who):
-        return "%s-publickey" % who
+        d = Deferred()
+        return d
 
 
 class ConfigReader:

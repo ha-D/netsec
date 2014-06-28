@@ -1,7 +1,10 @@
 from twisted.protocols.basic import NetstringReceiver
+from twisted.internet.defer  import Deferred
+
 from md5     import md5
 from logger  import logger
 from base    import application as app
+
 import json
 
 class SecureProtocol(NetstringReceiver):
@@ -36,19 +39,22 @@ class SecureProtocol(NetstringReceiver):
             logger.warning("Received Message discarded due to error")
             return
 
+        # ! Remove this
         if message.encrypted:
             message.decrypt()
 
         if message.signed:
-            if not message.senderKey:
-                logger.warning("Received a signed message received but I don't have a valid key to check the signature with, discarding message...")
-                return
-            if not message.validateSignature():
-                logger.info("Invalid Signature on received message, discarding...")
-                return
+            d = message.validateSignature()
+        else:
+            d = Deferred()
 
-        # Call messageReceived which is to be implemented by user
-        self.messageReceived(message)
+        def signatureValid:
+            # Call messageReceived which is to be implemented by user
+            self.messageReceived(message)
+        def signatureInvalid:
+            logger.warning("Invalid Signature on received message, discarding...")
+
+        d.addCallbacks(signatureValid, signatureInvalid)
 
 
 class SecureMessageFactory:
@@ -101,16 +107,10 @@ class SecureMessage:
 
         if 'sender-key' in data:
             self.senderKey = data['sender-key']
-        elif 'sender' in data:
-            try:
-                self.senderKey = app.keyManager.findKey(sender)
-            except:
-                logger.warning("Can't find key for '%s'" % sender)
-        if not self.senderKey:
-            logger.warning("No sender key set for populated message")
-
         if 'sender' in data:
             self.sender = data['sender']
+        if not self.senderKey and not self.sender:
+            logger.warning("No sender or sender-ey set for populated message")
 
         return self
 
@@ -180,28 +180,43 @@ class SecureMessage:
         self.signed = False
         return self
 
-    def validateSignature(self, key = None):
+    def validateSignature(self):
         if not signed:
             logger.error("How should I validate a signature when there is no signature?!")
             return False
         if encrypted:
             raise SecureMessageError("I can't validate the signature when everything is encrypted")
 
-        if not key:
-            if self.senderKey:
-                key = self.senderKey
-            else:
-                logger.warning("I'm validating a signature using my own public key, thats odd")
-                key = app.keyManager.getMyPublicKey()
-        signature = self.message['signature']
+        if not self.sender and not self.senderKey:
+            raise SecureMessageError("Can't validate signature. No sender or sender-key set on message")
+
+        def checkSignature(key):
+            signature = self.message['signature']
         
-        dig1 = RSADecrypt(signature, key)
+            dig1 = RSADecrypt(signature, key)
 
-        tmpMessage = self.message.copy()
-        tmpMessage.pop('signature')
-        dig2 = digest(json.dumps(sorted(tmpMessage.items())))
+            tmpMessage = self.message.copy()
+            tmpMessage.pop('signature')
+            dig2 = digest(json.dumps(sorted(tmpMessage.items())))    
+           
+            if dig1 != dig2:
+                raise SignatureError
 
-        return dig1 == dig2
+        def keyNotFound(failure):
+            logger.error("Couldn't obtain public key for '%s'" % self.sender)
+            raise SignatureError
+            
+        if self.senderKey:
+            key = self.senderKey
+            d = Deffered()
+            d.callback(key)
+        elif self.sender:
+            d = app.keyManager.findKey(self.sender)
+
+        d.addCallbacks(checkSignature, keyNotFound)
+
+        return d
+
 
     def finalizeForSending(self):
         serviceName = config.get("service-name")
@@ -255,8 +270,9 @@ class SecureMessage:
 
 class PopulationError(Exception):
     pass
-
 class SecureMessageError(Exception):
+    pass
+class SignatureError(Exception):
     pass
 
 
