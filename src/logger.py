@@ -6,6 +6,7 @@ class Logger:
         self.tagColors = {}
         self.messageColors = {}
         self.maxTagSize = 0
+        self.splitted = True
 
     def _log(self, tag, message, printTag):
         tagColor = self.tagColors[tag]
@@ -15,6 +16,7 @@ class Logger:
             print('%s %s %s' % (color('[' + tag + ']', tagColor), ' ' * spaceCount, color(message, messageColor, attrs=['bold'])))
         else:    
             print(' %s  %s %s' % (color(' ' * len(tag), tagColor), ' ' * spaceCount, color(message, messageColor, attrs=['bold'])))
+        self.splitted = False
 
     def addLevel(self, tag, tagColor="white", messageColor=None):
         if (messageColor == None):
@@ -27,6 +29,11 @@ class Logger:
 
         func = lambda self, message, printTag=True: self._log(tag, message, printTag)
         setattr(self, tag, types.MethodType(func, self, Logger))
+
+    def split(self):
+        if not self.splitted:
+            print('')
+            self.splitted = True
 
 
 logger = Logger()

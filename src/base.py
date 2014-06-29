@@ -1,4 +1,5 @@
 from twisted.internet.defer  import Deferred
+
 from logger import logger
 
 import json, traceback
@@ -6,7 +7,7 @@ import json, traceback
 class Application:
     
     def __init__(self):
-        from rsa    import KeyManager
+        from crypto import KeyManager
         self.config = Configuration()
         self.keyManager = KeyManager()
 

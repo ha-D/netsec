@@ -48,6 +48,8 @@ def initConfig(options):
         if otherOptions[uOpt]:
             app.config[opt] = otherOptions[uOpt]
 
+    logger.split();
+
 def initKeys():
     # Initialize KeyManager
     keyManager = app.keyManager
@@ -67,6 +69,8 @@ def initKeys():
     key = keyParser.readPrivateKey(keyPath)
     keyManager.setMyKey(key)
     logger.debug("Private Key read from %s" % keyPath)
+
+    logger.split()
 
 if __name__ == "__main__":
     

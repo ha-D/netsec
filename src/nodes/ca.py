@@ -56,16 +56,17 @@ class CAProtocol(SecureProtocol):
 
     def connectionMade(self):
         peer = self.transport.getPeer()
+        logger.split()
         logger.debug("<%s:%s> Connection established" % (peer.host, peer.port))
 
     def connectionLost(self, reason):
         peer = self.transport.getPeer()
-        logger.debug("<%s:%s> Connection Lost" % (peer.host, peer.port))
+        logger.debug("<%s:%s> Connection Closed" % (peer.host, peer.port))
 
     def messageReceived(self, message):
         peer = self.transport.getPeer()
-        logger.debug("<%s:%s> Message Received:" % (peer.host, peer.port))
-        logger.debug(message, False)
+        #logger.debug("<%s:%s> Message Received:" % (peer.host, peer.port))
+        #logger.debug(message, False)
 
         myKey = app.keyManager.getMyKey()
         if message.encrypted:

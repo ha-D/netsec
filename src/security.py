@@ -49,6 +49,7 @@ class SecureMessage:
         self.signed = False
         self.encrypted = False
         self.sender = None
+        self.action = None
 
     def populate(self, data):
         if type(data) == str:
@@ -80,6 +81,8 @@ class SecureMessage:
         else:
             logger.warning("No sender set for populated message")
 
+        if 'action' in data:
+            self.action = data['action']
         return self
 
     def encrypt(self, key):
@@ -177,6 +180,9 @@ class SecureMessage:
         if self.sender:
             data['sender'] = self.sender
         
+        if self.action:
+            data['action'] = self.action
+
         return json.dumps(data)
 
     __unicode__ = dump

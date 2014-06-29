@@ -50,17 +50,19 @@ class KeyParser:
 
     def parsePemPublic(self, pem):
         key = RSA.importKey(pem)
-        return PublicKey(key, pem)
+        return RSAPublicKey(key, pem)
 
     def parsePemPrivate(self, pem):
         key = RSA.importKey(pem)
-        return PrivateKey(key, pem)        
+        return RSAPrivateKey(key, pem)        
 
-class PublicKey:
+class RSAPublicKey:
 
     def __init__(self, rsaKey, pem):
         self.rsaKey = rsaKey
         self._pem = pem
+        self.e = self.rsaKey.e
+        self.n = self.rsaKey.n
 
     def publicEncrypt(self, val):
         return self.rsaKey.encrypt(val, str)[0]
@@ -71,11 +73,15 @@ class PublicKey:
     def pem(self):
         return self._pem
 
-class PrivateKey:
+class RSAPrivateKey:
 
     def __init__(self, rsaKey, pem):
         self.rsaKey = rsaKey
         self._pem = pem
+        self.e = self.rsaKey.e
+        self.n = self.rsaKey.n
+        self.d = self.rsaKey.d
+
 
     def publicEncrypt(self, val):
         return self.rsaKey.encrypt(val, str)[0]
@@ -88,4 +94,9 @@ class PrivateKey:
 
     def publickey(self):
         key = self.rsaKey.publickey()
-        return PublicKey(key, key.exportKey())
+        return RSAPublicKey(key, key.exportKey())
+
+class SessionKey:
+
+    def text():
+        pass
