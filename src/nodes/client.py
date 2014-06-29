@@ -8,6 +8,8 @@ from base       import application as app
 from crypto     import SessionKeyFactory, SessionKey
 from logger     import logger
 
+import json
+
 #### STAGE 1 ####
 
 class CertProtocol(SecureProtocol):
@@ -98,7 +100,7 @@ class Stage2Protocol(SecureProtocol):
             logger.info("Session Key received from Authority:")
             logger.info(sessionKey, False)
 
-            self.factory.receivedSessionKey(sessionKey)
+            self.factory.receivedSessionKey(sessionKey, self)
 
         except KeyError as e:
             return self.factory.fail("Malformed message received from Authority. No '%s' field" % e)            
@@ -109,6 +111,25 @@ class Stage2Protocol(SecureProtocol):
             logger.debug("Connection with Authority closed")
         else:
             self.factory.fail(reason)
+
+    def sendIndex(self, index, sessionKey):
+        message = SecureMessage()
+        message.action = "set-index"
+
+        pair = {
+            'certificate': self.factory.cert,
+            'index': index
+        }
+
+        pairString = json.dumps(pair)
+        encPair = sessionKey.encrypt(pairString)
+
+        message['certificate'] =  self.factory.cert
+        message['pair'] = encPair
+
+        logger.verbose("Sending certificate/index pair to Authority")
+        self.sendMessage(message.sign())
+        self.transport.loseConnection()
 
     def _sendCert(self):
         message = SecureMessage()
@@ -133,13 +154,13 @@ class Stage2Factory(ClientFactory):
         self.cert = cert
         self.deffered = deffered
 
-    def receivedSessionKey(self, sessionKey):
+    def receivedSessionKey(self, sessionKey, authConnection):
         if self.deffered is not None:
             d, self.deffered = self.deffered, None
 
             keyFactory = SessionKeyFactory()
             key = keyFactory.createAESKeyFromHex(sessionKey)
-            d.callback(key)
+            d.callback((key, authConnection))
 
     def fail(self, reason=None):
         if type(reason) == str:
@@ -174,6 +195,7 @@ class Stage3Protocol(SecureProtocol):
             logger.verbose(index, False)
 
             self.factory.receivedIndex(index)
+            self.transport.loseConnection()
 
         except KeyError as e:
             return self.factory.fail("Malformed message received from Collector. No '%s' field" % e)
@@ -220,6 +242,49 @@ class Stage3Factory(ClientFactory):
             d, self.deffered = self.deffered, None
             d.errback(reason)
 
+#### STAGE 4 ####
+
+# class Stage4Protocol(SecureProtocol):
+    
+#     def connectionMade(self):
+#         logger.debug("Connection established with Authority")
+#         self._sendCertAndIndex()
+
+#     def connectionLost(self):
+#         if reason.type == ConnectionDone:
+#             logger.debug("Client connection closed")
+#         else:
+#             self.factory.fail(reason)
+
+#     def _sendCertAndIndex(self):
+#         message = SecureMessage()
+#         message.action = "set-index"
+
+#         pair = {
+#             'certificate': self.factory.cert,
+#             'index': self.factory.index
+#         }
+
+#         pairString = json.dumps(pair)
+#         encPair = self.factory.sessionKey.encrypt(pairString)
+
+#         message['certificate'] =  self.factory.cert
+#         message['pair'] = encPair
+
+#         logger.verbose("Sending certificate/index pair to Authority")
+#         self.sendMessage(message.sign())
+#         self.transport.loseConnection()
+
+
+# class Stage4Factory(ClientFactory):
+
+#     protocol = Stage4Protocol
+
+#     def __init__(self, cert, index, sessionKey):
+#         self.cert = cert
+#         self.index = index
+#         self.sessionKey = sessionKey
+
 #################
 
 class ClientNode(NetworkNode):
@@ -262,6 +327,9 @@ class ClientNode(NetworkNode):
         reactor.connectTCP(host, port, factory)
         return d
 
+    def sendIndexToAuth(self):
+        self.authConnection.sendIndex(self.index, self.sessionKey)
+        
     def run(self):
 
         def stage1():
@@ -277,15 +345,29 @@ class ClientNode(NetworkNode):
             d = self.sendCertToAuth(cert)
             d.addCallbacks(stage3, stage2Failed)
 
-        def stage2Failed():
+        def stage2Failed(reason):
             logger.error("Authoritor protocol failed, exiting...")
+            logger.error(reason, False)
             exit(1)
 
-        def stage3(sessionKey):
-            self.sessionKey = sessionKey
+        def stage3(result):
+            self.sessionKey = result[0]
+            self.authConnection = result[1]
             d = self.sendVoteToCollector()
+            d.addCallbacks(stage4, stage3Failed)
 
+        def stage3Failed():
+            logger.error("Collector protocol failed, exiting...")
+            logger.error(reason, False)
+            exit(1)
 
+        def stage4(index):
+            self.index = index
+            self.sendIndexToAuth()
+            stage5()
+
+        def stage5():
+            logger.debug("STAGE 5")
         stage1()
         reactor.run()
 
