@@ -29,7 +29,8 @@ class SecureProtocol(NetstringReceiver):
             return
 
         if self.decryptOnReceive and message.encrypted:
-            message.decrypt()
+            myKey = app.keyManager.getMyKey()
+            message.decrypt(myKey)
 
         if self.validateSignatureOnReceive:
             if message.signed:

@@ -1,0 +1,4 @@
+{
+	"node-name": "authority",
+	"private-key-file": "data/authority/authority.key"
+}

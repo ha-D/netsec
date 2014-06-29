@@ -1,5 +1,6 @@
 from Crypto.PublicKey   import RSA
-from logger     import logger
+from logger             import logger
+from random             import randrange
 
 class RSAError(Exception):
     pass
@@ -65,7 +66,8 @@ class RSAPublicKey:
         self.n = self.rsaKey.n
 
     def publicEncrypt(self, val):
-        return self.rsaKey.encrypt(val, str)[0]
+        #return self.rsaKey.encrypt(val, str)[0]
+        return val
 
     def privateEncrypt(self, val):
         raise RSAError("Can't private encrypt with a public key")
@@ -84,10 +86,12 @@ class RSAPrivateKey:
 
 
     def publicEncrypt(self, val):
-        return self.rsaKey.encrypt(val, str)[0]
+        #return self.rsaKey.encrypt(val, str)[0]
+        return val
 
     def privateEncrypt(self, val):
-        return self.rsaKey.decrypt(val)
+        #return self.rsaKey.decrypt(val)
+        return val
 
     def pem(self):
         return self._pem
@@ -96,7 +100,17 @@ class RSAPrivateKey:
         key = self.rsaKey.publickey()
         return RSAPublicKey(key, key.exportKey())
 
+class SessionKeyFactory:
+
+    def createAESKey(self):
+        key = randrange(2**128)
+        return SessionKey(key)
+
 class SessionKey:
 
-    def text():
-        pass
+    def __init__(self, key):
+        self.key = key
+
+    def hex(self):
+        return "%x" % self.key
+        

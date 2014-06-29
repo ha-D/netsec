@@ -61,7 +61,7 @@ class Configuration:
             val = self.config[name]
         except KeyError:
             if default == NoValue:
-                raise KeyError("Can't find '%s' in your config file" % name)
+                raise ConfigKeyError("Can't find '%s' in your config file" % name)
                 exit(1)
             val = default
         return val
@@ -95,4 +95,7 @@ class Configuration:
     def __contains__(self, key):
         return self.config.__contains__(key)
 
+class ConfigKeyError(Exception):
+    pass
+    
 application = Application()

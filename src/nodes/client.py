@@ -79,19 +79,9 @@ class ClientAuthProtocol(SecureProtocol):
     decryptOnReceive = True
     validateSignatureOnReceive = True
 
-    def _sendCert(self):
-        message = SecureMessage()
-        message.action = 'get-session-key'
-        message['certificate'] = self.factory.cert
-
-        authKey = app.keyManager.findKey('authority')
-
-        message.sign().encrypt(authKey)
-
-        sendMessage(message)
-
     def connectionMade(self):
-        logger.verbose("Connection established with Authority")
+        logger.info("Connection established with Authority")
+        self._sendCert()
 
     def messageReceived(self, message):
         logger.debug("Message received from authority")
@@ -113,8 +103,22 @@ class ClientAuthProtocol(SecureProtocol):
     def connectionLost(self, reason):
         self.factory.fail(reason)
 
+    def _sendCert(self):
+        message = SecureMessage()
+        message.action = 'get-session-key'
+        message['certificate'] = self.factory.cert
 
-class ClientAuthFactor(ClientFactory):
+
+        message.sign()
+        
+        #authKey = app.keyManager.findKey('authority')
+        #message.encrypt(authKey)
+
+        logger.debug("Sending certficate to authority")
+        self.sendMessage(message)
+
+
+class ClientAuthFactory(ClientFactory):
 
     protocol = ClientAuthProtocol
 
@@ -132,9 +136,7 @@ class ClientAuthFactor(ClientFactory):
 
 class ClientNode(NetworkNode):
 
-    # Stage 1
-    def stage1(self):
-        # Get Certificate
+    def getCertificateFromCA(self):
         host = app.config.get("ca-host")
         port = app.config.get("ca-port")
 
@@ -146,19 +148,18 @@ class ClientNode(NetworkNode):
 
         return d
 
-    def stage1Failed(self, reason):
+    def getCertificateFailed(self, reason):
         logger.error("Certification failed, exiting...")
         exit(1)
 
-    # Stage 2
-    def stage2(self, cert):
-        # Send Certificate
-        host = app.config.get("ca-host")
-        port = app.config.get("ca-port")
+    def sendCertToAuth(self, cert):
+        host = app.config.get("authority-host")
+        port = app.config.get("authority-port")
 
         d = Deferred()
         factory = ClientAuthFactory(cert, d)
 
+        logger.split()
         logger.verbose("Connecting to Authority...")
         reactor.connectTCP(host, port, factory)
 
@@ -166,8 +167,21 @@ class ClientNode(NetworkNode):
 
 
     def run(self):
-        d = self.stage1()
-        d.addCallbacks(lambda x: self.stage1(x), lambda x: self.stage1Failed(x))
+
+        def stage1():
+            d = self.getCertificateFromCA()
+            d.addCallbacks(stage2, stage1Failed)
+
+        def stage1Failed(reason):
+            self.getCertificateFailed(reason)
+
+        def stage2(result):
+            self.sendCertToAuth(result)
+
+        def stage2Failed():
+            pass
+
+        stage1()
 
         reactor.run()
 

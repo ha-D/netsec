@@ -1,7 +1,7 @@
-from rsa    import KeyManager, KeyParser
+from crypto import KeyManager, KeyParser
 from base   import ConfigReader
 from base   import application as app
-from nodes  import CANode, ClientNode
+from nodes  import CANode, ClientNode, AuthorityNode
 from logger import logger
 
 import sys, os, inspect, argparse
@@ -9,7 +9,7 @@ import sys, os, inspect, argparse
 nodeList = {
     'client': ClientNode,
     'ca': CANode,
-    'authority': None,
+    'authority': AuthorityNode,
     'collector': None
 }
 

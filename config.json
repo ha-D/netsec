@@ -2,5 +2,7 @@
 	"public-key-directory": "data/public-keys",
 	"ca-host": "127.0.0.1",
 	"ca-port": 4000,
+	"authority-host": "127.0.0.1",
+	"authority-port": 4001,
 	"verbose": true
 }
