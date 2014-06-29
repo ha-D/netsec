@@ -102,14 +102,25 @@ class RSAPrivateKey:
 
 class SessionKeyFactory:
 
-    def createAESKey(self):
-        key = randrange(2**128)
+    def createAESKey(self, key=None):
+        if key == None:
+            key = randrange(2**128)
+        return SessionKey(key)
+
+    def createAESKeyFromHex(slef, val):
+        key = int(val, 16)
         return SessionKey(key)
 
 class SessionKey:
 
     def __init__(self, key):
         self.key = key
+
+    def encrypt(self, val):
+        return val
+
+    def decrypt(self, val):
+        return val
 
     def hex(self):
         return "%x" % self.key

@@ -1,7 +1,7 @@
 from crypto import KeyManager, KeyParser
 from base   import ConfigReader
 from base   import application as app
-from nodes  import CANode, ClientNode, AuthorityNode
+from nodes  import CANode, ClientNode, AuthorityNode, CollectorNode
 from logger import logger
 
 import sys, os, inspect, argparse
@@ -10,7 +10,7 @@ nodeList = {
     'client': ClientNode,
     'ca': CANode,
     'authority': AuthorityNode,
-    'collector': None
+    'collector': CollectorNode
 }
 
 acceptedOptions = [

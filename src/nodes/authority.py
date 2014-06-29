@@ -25,7 +25,7 @@ class AuthorityProtocol(SecureProtocol):
         elif message.action == 'sth else':
             pass
         else:
-            return self.factory.fail("Unrecognized action in received message: '%s'" % message.action)
+            return self.factory.fail("Malformed message received from client. No '%s' field" % e)
 
     def _get_session_key(self, message):
         try:

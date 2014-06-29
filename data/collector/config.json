@@ -1,0 +1,4 @@
+{
+	"node-name": "collector",
+	"private-key-file": "data/collector/collector.key"
+}
