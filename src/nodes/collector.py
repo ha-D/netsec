@@ -108,9 +108,7 @@ class AuthorityProtocol(SecureProtocol):
 
         authKey = app.keyManager.findKey("authority")
         encryptedKey = authKey.publicEncrypt(sessionKey.hex())
-        logger.debug("Encrypted session key:")
-        logger.debug(encryptedKey, False)
-
+    
         message.action = "request-table"
         message['encrypted-session-key'] = encryptedKey
         message.sign()

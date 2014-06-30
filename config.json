@@ -8,8 +8,9 @@
 	"collector-port": 4002,
 	"log-info": true,
 	"log-verbose": true,
-	"log-debug": false,
+	"log-debug": true,
 	"log-warning": true,
 	"log-error": true,
-	"log-special": true
+	"log-special": true,
+	"log-network": true
 }

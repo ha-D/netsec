@@ -57,5 +57,6 @@ logger.addLevel('warning', 'yellow', 'yellow')
 logger.addLevel('error', 'red', 'red')
 logger.addLevel('special', 'magenta', 'magenta')
 logger.addLevel('extraspecial', 'cyan', 'cyan')
+logger.addLevel('network', 'grey', 'grey')
 
 

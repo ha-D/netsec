@@ -17,10 +17,10 @@ class AuthorityProtocol(SecureProtocol):
     validateSignatureOnReceive = False
 
     def connectionMade(self):
+        logger.split()
         logger.debug("Connection established with %s" % self.transport.getPeer())
 
     def messageReceived(self, message):
-        logger.split()
         logger.verbose("Message with action '%s' received from %s" % (message.action, message.sender))
 
         if message.action == 'get-session-key':
@@ -41,7 +41,6 @@ class AuthorityProtocol(SecureProtocol):
     def _getSessionKey(self, message):
         try:
             certificate = message['certificate']
-            logger.debug(certificate)
 
             # Create Cert
 
@@ -64,7 +63,7 @@ class AuthorityProtocol(SecureProtocol):
 
                 sessionKey = self.factory.authNode.generateSessionKey(cert)
 
-                logger.debug("Generated session key '%s'" % sessionKey.hex())
+                logger.verbose("Generated session key '%s'" % sessionKey.hex())
                 logger.verbose("Sending session key to client..")
 
                 publicKeyPem = cert.get_pubkey().get_rsa().as_pem()
@@ -73,7 +72,7 @@ class AuthorityProtocol(SecureProtocol):
                 encSessionKey = publicKey.publicEncrypt(sessionKey.hex())
 
                 reply['encrypted-session-key'] = encSessionKey
-
+            logger.split()
             self.sendMessage(reply.sign())
 
         except KeyError as e:
@@ -105,6 +104,7 @@ class AuthorityProtocol(SecureProtocol):
             logger.verbose("Session Key: %s" % sessionKey.hex(), False)
 
             self.factory.authNode.indices[cert] = pair['index']
+            logger.split()
         except KeyError as e:
             return self.factory.fail("Get-Session-Key no: '%s' field found in message" % e)
 
@@ -132,6 +132,7 @@ class AuthorityProtocol(SecureProtocol):
             message['encrypted-table'] = encTable
             message.sign()
 
+            logger.split()
             self.sendMessage(message)
 
 
