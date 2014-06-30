@@ -90,9 +90,12 @@ class AuthorityProtocol(SecureProtocol):
             pairString = sessionKey.decrypt(encPair)
 
             try:
+                logger.special(pairString)
+                #pairString = pairString[0:pairString.index('}')+1]
                 pair = json.loads(pairString)
-            except:
+            except ValueError as e:
                 logger.warning("Invalid JSON as cert/index pair, discarding message...")
+                logger.warning(e.message, False)
                 return
 
             if pair['certificate'] != cert:

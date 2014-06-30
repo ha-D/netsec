@@ -91,6 +91,7 @@ class AuthorityProtocol(SecureProtocol):
     def messageReceived(self, message):
         encTable = message['encrypted-table']
         tableString = self.factory.collectorNode.authKey.decrypt(encTable)
+        print(tableString)
         table = json.loads(tableString)
 
         logger.verbose("Table received from Authority")
@@ -159,17 +160,24 @@ class CollectorNode(NetworkNode):
 
     def countVotes(self, indexTable):
         logger.split()
-        logger.info("Counting votes")
+        logger.verbose("Counting votes")
+
+        logger.split().split()
+        logger.info("Votes:", False)
+
         voteCount = {}
         for index in indexTable:
             # index = int(ind)
             key = SessionKey(int(indexTable[index], 16))
             vote = key.decrypt(self.votes[index])
+            logger.special("  %7s: %s" % (index, vote))
             if vote in voteCount:
                 voteCount[vote] += 1
             else:
                 voteCount[vote] = 1
-        logger.special("Votes:", False)
+
+
+
 
         mVote = None
         for vote in voteCount:
@@ -177,9 +185,9 @@ class CollectorNode(NetworkNode):
                 mVote = voteCount[vote]
         for vote in voteCount:
             if voteCount[vote] == mVote:
-                logger.extraspecial("%5s: %s (%d)" % (vote, '#'*voteCount[vote], voteCount[vote]), False)
+                logger.extraspecial("  %5s: %s (%d)" % (vote, '#'*voteCount[vote], voteCount[vote]), False)
             else:
-                logger.special("%5s: %s (%d)" % (vote, '#'*voteCount[vote], voteCount[vote]), False)
+                logger.special("  %5s: %s (%d)" % (vote, '#'*voteCount[vote], voteCount[vote]), False)
 
         # Send results to clients
         for client in self.clients:

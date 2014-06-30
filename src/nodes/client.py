@@ -335,7 +335,7 @@ class ClientNode(NetworkNode):
             d = self.sendVoteToCollector()
             d.addCallbacks(stage4, stage3Failed)
 
-        def stage3Failed():
+        def stage3Failed(reason):
             logger.error("Collector protocol failed, exiting...")
             logger.error(reason, False)
             exit(1)
