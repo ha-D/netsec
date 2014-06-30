@@ -72,6 +72,11 @@ def initKeys():
 
     logger.split()
 
+def initLogs():
+    for tag in logger.getTags():
+        enabled = app.config.get("log-" + tag, True)
+        logger.setEnabled(tag, enabled)
+
 if __name__ == "__main__":
     
     # Add project directory to sys path
@@ -104,6 +109,7 @@ if __name__ == "__main__":
 
     options = parseArgs()
     initConfig(options)
+    initLogs()
     initKeys()
 
     node = nodeList[nodeName]()

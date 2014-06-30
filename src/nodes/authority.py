@@ -12,6 +12,7 @@ import M2Crypto as m2c
 import json
 
 class AuthorityProtocol(SecureProtocol):
+    
     decryptOnReceive = False
     validateSignatureOnReceive = False
 
@@ -19,12 +20,15 @@ class AuthorityProtocol(SecureProtocol):
         logger.debug("Connection established with %s" % self.transport.getPeer())
 
     def messageReceived(self, message):
+        logger.split()
         logger.verbose("Message with action '%s' received from %s" % (message.action, message.sender))
 
         if message.action == 'get-session-key':
             self._getSessionKey(message)
         elif message.action == 'set-index':
             self._setIndex(message)
+        elif message.action == 'request-table':
+            self._requestTable(message)
         else:
             return self.factory.fail("Unrecognized action in received message: '%s'" % message.action)
 
@@ -33,7 +37,7 @@ class AuthorityProtocol(SecureProtocol):
             logger.debug("Connection with Collector closed")
         else:
             self.factory.fail(reason)
-            
+
     def _getSessionKey(self, message):
         try:
             certificate = message['certificate']
@@ -102,6 +106,36 @@ class AuthorityProtocol(SecureProtocol):
         except KeyError as e:
             return self.factory.fail("Get-Session-Key no: '%s' field found in message" % e)
 
+    def _requestTable(self, message):
+        try:
+            if message.sender != 'collector':
+                return self.factory.fail("Unauthorized request for table by '%s'" % message.sender)
+            if not message.signed:
+                return self.factory.fail("Table Request message must be signed by collector")
+            if not message.validateSignature():
+                return self.factory.fail("Invalid signature on Table Request message")
+
+            encKey = message['encrypted-session-key']
+            myKey = app.keyManager.getMyKey()
+
+            keyHex = myKey.privateEncrypt(encKey)
+            key = SessionKey(int(keyHex, 16))
+            logger.debug("Received session key from collector:")
+            logger.debug(keyHex, False)
+
+            table = self.factory.authNode.generateTable()
+            encTable = key.encrypt(json.dumps(table))
+
+            message = SecureMessage()
+            message['encrypted-table'] = encTable
+            message.sign()
+
+            self.sendMessage(message)
+
+
+        except KeyError as e:
+            return self.factory.fail("Get-Session-Key no: '%s' field found in message" % e)
+
 class AuthorityFactory(ServerFactory):
 
     protocol = AuthorityProtocol
@@ -146,6 +180,12 @@ class AuthorityNode(NetworkNode):
         self.sessionKeys[cert.as_pem()] = key
 
         return key
+
+    def generateTable(self):
+        table = {}
+        for cert in self.indices:
+            table[self.indices[cert]] = self.sessionKeys[cert].hex()
+        return table
 
     def run(self):
         factory = AuthorityFactory(self)

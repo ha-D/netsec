@@ -78,7 +78,7 @@ class CertFactory(ClientFactory):
 
 #### STAGE 2 ####
 
-class Stage2Protocol(SecureProtocol):
+class AuthorityProtocol(SecureProtocol):
     
     decryptOnReceive = True
     validateSignatureOnReceive = True
@@ -146,9 +146,9 @@ class Stage2Protocol(SecureProtocol):
         self.sendMessage(message)
 
 
-class Stage2Factory(ClientFactory):
+class Authority2Factory(ClientFactory):
 
-    protocol = Stage2Protocol
+    protocol = AuthorityProtocol
 
     def __init__(self, cert, deffered=None):
         self.cert = cert
@@ -172,7 +172,7 @@ class Stage2Factory(ClientFactory):
 
 #### STAGE 3 ####
 
-class Stage3Protocol(SecureProtocol):
+class CollectorProtocol(SecureProtocol):
     
     decryptOnReceive = True
     validateSignatureOnReceive = True
@@ -182,21 +182,41 @@ class Stage3Protocol(SecureProtocol):
         self._sendVote()
 
     def messageReceived(self, message):
-        logger.debug("Message received from authority")
+        logger.debug("Message received from Collector")
 
         try:
-            status = message['status']
-            if status != 'ok':
-                return self.factory.fail("Certificate not accepted by authority")
-    
-            index = message['index']
+            if message.action == 'set-index':
+                index = message['index']
 
-            logger.info("Index received from Collector:")
-            logger.verbose(index, False)
+                logger.info("Index received from Collector:")
+                logger.verbose(index, False)
 
-            self.factory.receivedIndex(index)
-            self.transport.loseConnection()
+                self.factory.receivedIndex(index)
 
+            elif message.action == 'announce-results':
+                voteCount = message['vote-count']
+                myVote = message['your-vote']
+
+                mVote = None
+
+                logger.split().split()
+                logger.info("Election Results:")
+                for vote in voteCount:
+                    if not mVote or voteCount[vote] > mVote:
+                        mVote = voteCount[vote]
+                for vote in voteCount:
+                    if voteCount[vote] == mVote:
+                        logger.extraspecial("%5s: %s (%d)" % (vote, '#'*voteCount[vote], voteCount[vote]), False)
+                    else:
+                        logger.special("%5s: %s (%d)" % (vote, '#'*voteCount[vote], voteCount[vote]), False)
+
+                logger.split()
+
+                logger.info("Your Vote:")
+                logger.special("  Index: %s" % myVote['index'])
+                logger.special("   Vote: %s" % myVote['vote'])
+
+                reactor.stop()
         except KeyError as e:
             return self.factory.fail("Malformed message received from Collector. No '%s' field" % e)
         
@@ -220,9 +240,9 @@ class Stage3Protocol(SecureProtocol):
             self.factory.fail(reason)
 
 
-class Stage3Factory(ClientFactory):
+class CollectorFactory(ClientFactory):
 
-    protocol = Stage3Protocol
+    protocol = CollectorProtocol
 
     def __init__(self, sessionKey, vote, deffered=None):
         self.sessionKey = sessionKey
@@ -241,49 +261,6 @@ class Stage3Factory(ClientFactory):
         if self.deffered is not None:
             d, self.deffered = self.deffered, None
             d.errback(reason)
-
-#### STAGE 4 ####
-
-# class Stage4Protocol(SecureProtocol):
-    
-#     def connectionMade(self):
-#         logger.debug("Connection established with Authority")
-#         self._sendCertAndIndex()
-
-#     def connectionLost(self):
-#         if reason.type == ConnectionDone:
-#             logger.debug("Client connection closed")
-#         else:
-#             self.factory.fail(reason)
-
-#     def _sendCertAndIndex(self):
-#         message = SecureMessage()
-#         message.action = "set-index"
-
-#         pair = {
-#             'certificate': self.factory.cert,
-#             'index': self.factory.index
-#         }
-
-#         pairString = json.dumps(pair)
-#         encPair = self.factory.sessionKey.encrypt(pairString)
-
-#         message['certificate'] =  self.factory.cert
-#         message['pair'] = encPair
-
-#         logger.verbose("Sending certificate/index pair to Authority")
-#         self.sendMessage(message.sign())
-#         self.transport.loseConnection()
-
-
-# class Stage4Factory(ClientFactory):
-
-#     protocol = Stage4Protocol
-
-#     def __init__(self, cert, index, sessionKey):
-#         self.cert = cert
-#         self.index = index
-#         self.sessionKey = sessionKey
 
 #################
 
@@ -305,7 +282,7 @@ class ClientNode(NetworkNode):
         port = app.config.get("authority-port")
 
         d = Deferred()
-        factory = Stage2Factory(cert, d)
+        factory = Authority2Factory(cert, d)
 
         logger.split()
         logger.verbose("Connecting to Authority...")
@@ -320,7 +297,7 @@ class ClientNode(NetworkNode):
         port = app.config.get("collector-port")
 
         d = Deferred()
-        factory = Stage3Factory(self.sessionKey, self.vote, d)
+        factory = CollectorFactory(self.sessionKey, self.vote, d)
 
         logger.split()
         logger.verbose("Connecting to Collector...")
@@ -364,10 +341,7 @@ class ClientNode(NetworkNode):
         def stage4(index):
             self.index = index
             self.sendIndexToAuth()
-            stage5()
 
-        def stage5():
-            logger.debug("STAGE 5")
         stage1()
         reactor.run()
 

@@ -6,5 +6,10 @@
 	"authority-port": 4001,
 	"collector-host": "127.0.0.1",
 	"collector-port": 4002,
-	"verbose": true
+	"log-info": true,
+	"log-verbose": true,
+	"log-debug": false,
+	"log-warning": true,
+	"log-error": true,
+	"log-special": true
 }
