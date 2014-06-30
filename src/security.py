@@ -48,7 +48,6 @@ class SecureMessage:
     def __init__(self):
         self.message = {}
         self.signed = False
-        self.encrypted = False
         self.sender = None
         self.action = None
 
@@ -70,12 +69,9 @@ class SecureMessage:
             return self
         if 'signed' not in data:
             logger.warning("No 'signed' field in data, assuming false")
-        if 'encrypted' not in data:
-            logger.warning("No 'encrypted' field in data, assuming false")
         
         self.message = data.get('message', None)
         self.signed = data.get('signed', False)
-        self.encrypted = data.get('encrypted', False)
 
         if 'sender' in data:
             self.sender = data['sender']
@@ -86,39 +82,10 @@ class SecureMessage:
             self.action = data['action']
         return self
 
-    def encrypt(self, key):
-        if self.encrypted:
-            logger.warning("You tell me to encrypt an already encrypted message, I won't!")
-            return self
-
-
-        self.message = RSAPublicEncrypt(json.dumps(self.message), key)
-
-        self.encryptionKey = key
-        self.encrypted = True
-
-        return self
-
-    def decrypt(self, key):
-        if not self.encrypted:
-            logger.warning("You tell me to decrypt an already decrypted message, I won't!")
-            return self
-
-        try:
-            self.message = json.loads(RSAPrivateEncrypt(self.message, key))
-        except ValueError:
-            raise SecureMessageError("Decrypting message leads to an invalid JSON")
-
-        self.encrypted = False
-
-        return self
-
     def sign(self):
         if self.signed:
             logger.warning("You tell me to sign an already signed message, I won't!")
             return self
-        if self.encrypted:
-            raise SecureMessageError("I can't sign an encrypted message, thats not how I work!")
 
         items = json.dumps(sorted(self.message.items()))
         key = app.keyManager.getMyKey()
@@ -133,8 +100,6 @@ class SecureMessage:
         if not self.signed:
             logger.warning("You tell me to unsign a message which is not signed, what do you want me to do?")
             return self
-        if self.encrypted:
-            raise SecureMessageError("I can't unsign an encrypted message, thats not how I work!")
 
         self.message.pop('signature')
         self.signed = False
@@ -144,8 +109,6 @@ class SecureMessage:
         if not self.signed:
             logger.error("How should I validate a signature when there is no signature?!")
             return False
-        if self.encrypted:
-            raise SecureMessageError("I can't validate the signature when everything is encrypted")
 
         if not self.sender:
             raise SecureMessageError("Can't validate signature. No sender specified on message")
@@ -174,7 +137,6 @@ class SecureMessage:
     def dump(self):
         data = {
             'message': self.message,
-            'encrypted': self.encrypted,
             'signed': self.signed
         }
 
@@ -190,28 +152,18 @@ class SecureMessage:
     __str__ = dump
 
     def __getitem__(self, key):
-        if self.encrypted:
-            raise SecureMessageError("Can't read from an encrypted message")
         return self.message.__getitem__(key)
 
     def __setitem__(self, key, item):
-        if self.encrypted:
-            raise SecureMessageError("Can't write to an encrypted message")
         return self.message.__setitem__(key, item)
 
     def __delitem__(self, key):
-        if self.encrypted:
-            raise SecureMessageError("Can't delete from an encrypted message")
         return self.message.__delitem__(key)
 
     def __contains__(self, key):
-        if self.encrypted:
-            raise SecureMessageError("Can't read from an encrypted message")
         return self.message.__contains__(key)
 
     def __iter__(self):
-        if self.encrypted:
-            raise SecureMessageError("Can't iterate on an encrypted message")
         return self.message.__iter__()
 
 class PopulationError(Exception):

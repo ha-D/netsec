@@ -69,9 +69,6 @@ class CAProtocol(SecureProtocol):
         #logger.debug(message, False)
 
         myKey = app.keyManager.getMyKey()
-        if message.encrypted:
-            logger.warning("Received an encrypted message, I wan't expecting messages to be encrypted but I'll proceed...")
-            message.decrypt(myKey)
 
         if 'public-key' not in message:
             logger.warning("Faulty message received: no public-key found. Discarding...")

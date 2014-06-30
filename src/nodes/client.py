@@ -80,7 +80,7 @@ class CertFactory(ClientFactory):
 
 class AuthorityProtocol(SecureProtocol):
     
-    decryptOnReceive = True
+    decryptOnReceive = False
     validateSignatureOnReceive = True
 
     def connectionMade(self):
@@ -95,7 +95,9 @@ class AuthorityProtocol(SecureProtocol):
             if status != 'ok':
                 return self.factory.fail("Certificate not accepted by authority")
     
-            sessionKey = message['session-key']
+            encSessionKey = message['encrypted-session-key']
+            myKey = app.keyManager.getMyKey()
+            sessionKey = myKey.privateEncrypt(encSessionKey)
 
             logger.info("Session Key received from Authority:")
             logger.info(sessionKey, False)
@@ -174,7 +176,7 @@ class Authority2Factory(ClientFactory):
 
 class CollectorProtocol(SecureProtocol):
     
-    decryptOnReceive = True
+    decryptOnReceive = False
     validateSignatureOnReceive = True
 
     def connectionMade(self):

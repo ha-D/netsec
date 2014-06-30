@@ -12,7 +12,7 @@ import M2Crypto as m2c
 import json
 
 class AuthorityProtocol(SecureProtocol):
-    
+
     decryptOnReceive = False
     validateSignatureOnReceive = False
 
@@ -66,13 +66,15 @@ class AuthorityProtocol(SecureProtocol):
 
                 logger.debug("Generated session key '%s'" % sessionKey.hex())
                 logger.verbose("Sending session key to client..")
-                reply['session-key'] = sessionKey.hex()
 
-            publicKeyPem = cert.get_pubkey().get_rsa().as_pem()
-            keyParser = KeyParser()
-            publicKey = keyParser.parsePemPublic(publicKeyPem)
-            reply.sign().encrypt(publicKey)
-            self.sendMessage(reply)
+                publicKeyPem = cert.get_pubkey().get_rsa().as_pem()
+                keyParser = KeyParser()
+                publicKey = keyParser.parsePemPublic(publicKeyPem)
+                encSessionKey = publicKey.publicEncrypt(sessionKey.hex())
+
+                reply['encrypted-session-key'] = encSessionKey
+
+            self.sendMessage(reply.sign())
 
         except KeyError as e:
             return self.factory.fail("Get-Session-Key no: '%s' field found in message" % e)
