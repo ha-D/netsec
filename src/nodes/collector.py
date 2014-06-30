@@ -162,22 +162,23 @@ class CollectorNode(NetworkNode):
         logger.split()
         logger.verbose("Counting votes")
 
-        logger.split().split()
-        logger.info("Votes:", False)
+        logger.split()
+        logger.info("Election Results:", False)
+        logger.split()
 
         voteCount = {}
         for index in indexTable:
             # index = int(ind)
             key = SessionKey(int(indexTable[index], 16))
             vote = key.decrypt(self.votes[index])
-            logger.special("  %7s: %s" % (index, vote))
+            logger.special("%7s: %s" % (index, vote), False)
             if vote in voteCount:
                 voteCount[vote] += 1
             else:
                 voteCount[vote] = 1
 
 
-
+        logger.split().split()
 
         mVote = None
         for vote in voteCount:
@@ -185,10 +186,11 @@ class CollectorNode(NetworkNode):
                 mVote = voteCount[vote]
         for vote in voteCount:
             if voteCount[vote] == mVote:
-                logger.extraspecial("  %5s: %s (%d)" % (vote, '#'*voteCount[vote], voteCount[vote]), False)
+                logger.extraspecial("%5s: %s (%d)" % (vote, '#'*voteCount[vote], voteCount[vote]), False)
             else:
-                logger.special("  %5s: %s (%d)" % (vote, '#'*voteCount[vote], voteCount[vote]), False)
+                logger.special("%5s: %s (%d)" % (vote, '#'*voteCount[vote], voteCount[vote]), False)
 
+        logger.split()
         # Send results to clients
         for client in self.clients:
             client['connection'].sendResults(voteCount=voteCount, index=client['index'], vote=client['vote'])

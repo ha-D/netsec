@@ -12,5 +12,5 @@
 	"log-warning": true,
 	"log-error": true,
 	"log-special": true,
-	"log-network": true
+	"log-network": false
 }
