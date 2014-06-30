@@ -2,7 +2,7 @@ from twisted.internet           import defer
 from twisted.internet.protocol  import ServerFactory
 from M2Crypto.X509              import X509, FORMAT_PEM, load_cert_string
 
-from security   import SecureProtocol, SecureMessage
+from secure     import SecureProtocol, SecureMessage
 from base       import NetworkNode
 from base       import application as app
 from logger     import logger

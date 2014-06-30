@@ -2,7 +2,7 @@ from twisted.internet.defer     import Deferred
 from twisted.internet.protocol  import ServerFactory
 from twisted.internet.error     import ConnectionDone
 from twisted.internet           import reactor
-from security   import SecureProtocol, SecureMessage
+from secure     import SecureProtocol, SecureMessage
 from base       import NetworkNode
 from base       import application as app
 from crypto     import SessionKeyFactory, SessionKey, KeyParser

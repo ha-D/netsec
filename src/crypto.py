@@ -66,8 +66,10 @@ class RSAPublicKey:
         self.n = self.rsaKey.n
 
     def publicEncrypt(self, val):
-        #return self.rsaKey.encrypt(val, str)[0]
-        return val
+        if type(val) == str or type(val) == unicode:
+            return "%x" % pow(int(val, 16), self.e, self.n)
+        else:
+            return pow(val, self.e, self.n)
 
     def privateEncrypt(self, val):
         raise RSAError("Can't private encrypt with a public key")
@@ -86,12 +88,16 @@ class RSAPrivateKey:
 
 
     def publicEncrypt(self, val):
-        #return self.rsaKey.encrypt(val, str)[0]
-        return val
+        if type(val) == str or type(val) == unicode:
+            return "%x" % pow(int(val, 16), self.e, self.n)
+        else:
+            return pow(val, self.e, self.n)
 
     def privateEncrypt(self, val):
-        #return self.rsaKey.decrypt(val)
-        return val
+        if type(val) == str or type(val) == unicode:
+            return "%x" % pow(int(val, 16), self.d, self.n)
+        else:
+            return pow(val, self.d, self.n)
 
     def pem(self):
         return self._pem

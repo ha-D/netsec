@@ -4,7 +4,7 @@ from twisted.internet.error     import ConnectionDone
 from twisted.internet           import reactor
 from twisted.protocols.basic    import LineReceiver
 from twisted.internet           import stdio
-from security   import SecureProtocol, SecureMessage
+from secure     import SecureProtocol, SecureMessage
 from base       import NetworkNode
 from base       import application as app
 from crypto     import SessionKeyFactory, SessionKey, KeyParser
