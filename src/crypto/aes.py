@@ -258,7 +258,6 @@ class AESKey:
 
     def keyExpansion(self): 
         words = [0]*45
-        _words = [0]*45
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         words[1] = self.sessionKey >> 96
         words[2] = (self.sessionKey - (words[1] << 96)) >> 64
@@ -274,46 +273,51 @@ class AESKey:
         #print words
         #return [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 154, 152, 152, 152, 249, 251, 251, 251, 154, 152, 152, 152, 249, 251, 251, 251, 145, 151, 151, 1, 104, 108, 108, 250, 242, 244, 244, 98, 11, 15, 15, 153, 239, 225, 121, 42, 135, 141, 21, 208, 117, 121, 225, 178, 126, 118, 238, 43, 199, 201, 136, 217, 64, 68, 157, 9, 53, 61, 124, 187, 75, 75, 146, 144, 84, 134, 232, 106, 20, 194, 117, 99, 33, 255, 9, 216, 106, 180, 155, 72, 153, 146, 186, 104, 141, 80, 207, 11, 172, 175, 198, 211, 198, 27, 93, 155, 182, 222, 174, 220, 59, 142, 97, 215, 151, 33, 167, 4, 81, 58, 250, 159, 45, 243, 117, 13, 22, 125, 20, 218, 129, 92, 179, 222, 208, 102, 73, 65, 40, 200, 246, 125, 62, 181, 226, 167, 191, 233, 81, 121, 111, 143, 24, 56]
         # return [0x01020304] * 44
-        return _words
+        return words
         
     def encrypt(self, val):
         self.setStateTable(val)
 
         self.expandedKey = self.keyExpansion()
 
-        for statetable in self.stateTables:
-            statetable = self.addRoundKey(statetable, self.expandedKey[0:4])
+        for i in range(len(self.stateTables)):
+            self.stateTables[i] = self.addRoundKey(self.stateTables[i], self.expandedKey[1:5])
             #print statetable
             #round1-9
-            for i in range(1, 10):
-                statetable = self.substitute(statetable)
-                statetable = self.shiftLeft(statetable)
-                statetable = self.mixColumns(statetable)
+            for j in range(1, 10):
+                self.stateTables[i] = self.substitute(self.stateTables[i])
+                self.stateTables[i] = self.shiftLeft(self.stateTables[i])
+                self.stateTables[i] = self.mixColumns(self.stateTables[i])
                 #print "one round"
                 #print statetable
-                statetable = self.addRoundKey(statetable, self.expandedKey[4*i:4*(i+1)])
+
+                self.stateTables[i] = self.addRoundKey(self.stateTables[i], self.expandedKey[4*j+1:4*(j+1)+1])
             #round10
-            statetable = self.substitute(statetable)
-            statetable = self.shiftLeft(statetable)
-            statetable = self.addRoundKey(statetable, self.expandedKey[40:44])
+            self.stateTables[i] = self.substitute(self.stateTables[i])
+            self.stateTables[i] = self.shiftLeft(self.stateTables[i])
+
+            self.stateTables[i] = self.addRoundKey(self.stateTables[i], self.expandedKey[41:45])
+
         return b64encode(self.text())
     
     def decrypt(self, val):
         val = b64decode(val)
         self.setStateTable(val)
         self.expandedKey = self.keyExpansion()
-        for statetable in self.stateTables:
+      
+        for i in range(len(self.stateTables)):
             #round10
-            statetable = self.addRoundKey(statetable, self.expandedKey[0:4])
-            statetable = self.inverseSubstitute(statetable)
-            statetable = self.shiftRight(statetable)
+
+            self.stateTables[i] = self.addRoundKey(self.stateTables[i], self.expandedKey[41:45])
             #round9-1
-            for i in range(1, 10):
-                statetable = self.inverseMixColumns(statetable)
-                statetable = self.addRoundKey(statetable, self.expandedKey[4*i:4*(i+1)])
-                statetable = self.inverseSubstitute(statetable)
-                statetable = self.shiftRight(statetable)    
-            statetable = self.addRoundKey(statetable, self.expandedKey[40:44])
+            for j in range(9, 0, -1):
+                self.stateTables[i] = self.shiftRight(self.stateTables[i])  
+                self.stateTables[i] = self.inverseSubstitute(self.stateTables[i])
+                self.stateTables[i] = self.addRoundKey(self.stateTables[i], self.expandedKey[4*j+1:4*(j+1)+1])
+                self.stateTables[i] = self.inverseMixColumns(self.stateTables[i])
+            self.stateTables[i] = self.shiftRight(self.stateTables[i])
+            self.stateTables[i] = self.inverseSubstitute(self.stateTables[i])                   
+            self.stateTables[i] = self.addRoundKey(self.stateTables[i], self.expandedKey[1:5])
 
         return self.text().strip()
         

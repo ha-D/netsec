@@ -90,7 +90,7 @@ class AuthorityProtocol(SecureProtocol):
             pairString = sessionKey.decrypt(encPair)
 
             try:
-                logger.special(pairString)
+                # logger.special(pairString)
                 #pairString = pairString[0:pairString.index('}')+1]
                 pair = json.loads(pairString)
             except ValueError as e:

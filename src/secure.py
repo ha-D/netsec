@@ -35,8 +35,8 @@ class SecureProtocol(NetstringReceiver):
         if self.validateSignatureOnReceive:
             if message.signed:
                 if not message.validateSignature():
-                    logger.warning("Invalid Signature on received message, discarding...")
-                    return
+                    logger.warning("Invalid Signature on received message... %s" % self)
+                    # return
             else:
                 logger.warning("No signature found on message, discarding...")
 
